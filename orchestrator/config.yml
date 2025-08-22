@@ -1,0 +1,80 @@
+hosts:
+  - name: db_server
+    config:
+      host: 192.168.1.100
+      user: oracle
+      connect_kwargs:
+        # Using password for simplicity here, but key-based is recommended.
+        # The key would be looked for in ~/.ssh/ by default if not specified.
+        password: "password"
+  - name: app_server_1
+    config:
+      host: 192.168.1.101
+      user: weblogic
+      connect_kwargs:
+        password: "password"
+  - name: app_server_2
+    config:
+      host: 192.168.1.102
+      user: weblogic
+      connect_kwargs:
+        password: "password"
+
+command_sequences:
+  start_oracle:
+    - name: "Start Oracle Database Listener"
+      hosts: [db_server]
+      parallel: false
+      commands:
+        - "lsnrctl start"
+    - name: "Start Oracle Database Instance"
+      hosts: [db_server]
+      parallel: false
+      commands:
+        - "sqlplus / as sysdba <<< 'startup'"
+
+  start_weblogic:
+    - name: "Start Node Manager on all app servers"
+      hosts: [app_server_1, app_server_2]
+      parallel: true
+      commands:
+        - "/opt/wls/startNodeManager.sh"
+    - name: "Start Admin Server"
+      hosts: [app_server_1]
+      parallel: false
+      commands:
+        - "/opt/wls/startAdminServer.sh"
+    - name: "Start Managed Servers"
+      hosts: [app_server_1, app_server_2]
+      parallel: true
+      commands:
+        - "/opt/wls/startManagedServer.sh ms1"
+
+  stop_weblogic:
+    - name: "Stop Managed Servers"
+      hosts: [app_server_1, app_server_2]
+      parallel: true
+      commands:
+        - "/opt/wls/stopManagedServer.sh ms1"
+    - name: "Stop Admin Server"
+      hosts: [app_server_1]
+      parallel: false
+      commands:
+        - "/opt/wls/stopAdminServer.sh"
+    - name: "Stop Node Manager"
+      hosts: [app_server_1, app_server_2]
+      parallel: true
+      commands:
+        - "/opt/wls/stopNodeManager.sh"
+
+  stop_oracle:
+    - name: "Stop Oracle Database Instance"
+      hosts: [db_server]
+      parallel: false
+      commands:
+        - "sqlplus / as sysdba <<< 'shutdown immediate'"
+    - name: "Stop Oracle Database Listener"
+      hosts: [db_server]
+      parallel: false
+      commands:
+        - "lsnrctl stop"
