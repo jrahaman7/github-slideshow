@@ -1,0 +1,3 @@
+alpha-vantage
+pandas
+GitPython
