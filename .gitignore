@@ -1,4 +1,4 @@
-_site/
-.sass-cache/
-.jekyll-metadata
-.bundle
+__pycache__/
+*.pyc
+*.mp3
+.env
